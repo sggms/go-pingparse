@@ -2,7 +2,6 @@ package parser
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -51,8 +50,8 @@ type PingStatistics struct {
 	PacketsReceived    uint
 	PacketLossPercent  uint8
 	Time               time.Duration
-	RoundTripTime      time.Duration
-	AverageTime        time.Duration
+	RoundTrip          time.Duration
+	Average            time.Duration
 	Max                time.Duration
 	MeanDeviation      time.Duration
 }
@@ -67,7 +66,7 @@ func Parse(s string) (*PingOutput, error) {
 	}
 
 	m := headerRx.FindStringSubmatch(lines[0])
-	if len(m) < 5 {
+	if len(m) != 5 {
 		return nil, ErrHeaderMismatch
 	}
 	po.IPAddress = m[1]
@@ -90,7 +89,7 @@ func Parse(s string) (*PingOutput, error) {
 			break
 		}
 		m := lineRx.FindStringSubmatch(line)
-		if len(m) < 6 {
+		if len(m) != 6 {
 			return nil, ErrUnrecognizedLine
 		}
 
@@ -113,30 +112,23 @@ func Parse(s string) (*PingOutput, error) {
 		}
 		pr.TTL = uint(replyTTL)
 
-		if len(m[5]) != 5 {
-			return nil, ErrUnexpectedFloatFormat
-		}
-
-		// remove dot and leading zeroes
-		s := strings.TrimLeft(strings.Replace(m[5], ".", "", -1), "0")
-		us, err := strconv.ParseUint(s, 10, 64)
+		pr.Time, err = parseMs(m[5])
 		if err != nil {
 			return nil, err
 		}
 
-		pr.Time = time.Microsecond * time.Duration(us)
 		po.Replies = append(po.Replies, pr)
 	}
 
 	header := lines[last+2]
 	m = statsSeparatorRx.FindStringSubmatch(header)
-	if len(m) < 2 {
+	if len(m) != 2 {
 		return nil, ErrMalformedStats
 	}
 	po.Stats.IPAddress = m[1]
 
 	m = statsLine1.FindStringSubmatch(lines[last+3])
-	if len(m) < 5 {
+	if len(m) != 5 {
 		return nil, ErrMalformedStats
 	}
 	packetsTransmitted, err := strconv.ParseUint(m[1], 10, 64)
@@ -164,7 +156,41 @@ func Parse(s string) (*PingOutput, error) {
 	po.Stats.Time = time.Millisecond * time.Duration(t)
 
 	m = statsLine2.FindStringSubmatch(lines[last+4])
-	fmt.Println(m)
+	if len(m) != 5 {
+		return nil, ErrMalformedStats
+	}
 
-	return nil, nil
+	po.Stats.RoundTrip, err = parseMs(m[1])
+	if err != nil {
+		return nil, err
+	}
+	po.Stats.Average, err = parseMs(m[2])
+	if err != nil {
+		return nil, err
+	}
+	po.Stats.Max, err = parseMs(m[3])
+	if err != nil {
+		return nil, err
+	}
+	po.Stats.MeanDeviation, err = parseMs(m[4])
+	if err != nil {
+		return nil, err
+	}
+
+	return &po, nil
+}
+
+func parseMs(s string) (time.Duration, error) {
+	if len(s) != 5 {
+		return 0, ErrUnexpectedFloatFormat
+	}
+
+	// remove dot and leading zeroes
+	s = strings.TrimLeft(strings.Replace(s, ".", "", -1), "0")
+	us, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return time.Microsecond * time.Duration(us), nil
 }

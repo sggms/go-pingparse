@@ -22,5 +22,5 @@ func TestSimplePing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("result: %v", po)
+	t.Logf("result: %#v", po)
 }
