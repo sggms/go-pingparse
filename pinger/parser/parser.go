@@ -43,6 +43,7 @@ type PingReply struct {
 	Size           uint
 	FromAddress    string
 	SequenceNumber uint
+	Duplicate      bool
 	TTL            uint
 	Time           time.Duration
 	Error          string
@@ -96,6 +97,12 @@ func Parse(s string) (*PingOutput, error) {
 			break
 		}
 		var pr PingReply
+
+		// remove DUP postfix (if any)
+		if strings.HasSuffix(line, " (DUP!)") {
+			pr.Duplicate = true
+			line = line[:len(line)-7]
+		}
 
 		m := lineRx.FindStringSubmatch(line)
 		if len(m) != 6 {
