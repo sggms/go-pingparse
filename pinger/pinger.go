@@ -11,7 +11,7 @@ import (
 )
 
 // Ping will ping the specified IPv4 address wit the provided timeout and interval settings.
-func Ping(ipV4Address string, timeout, interval time.Duration) (*parser.PingOutput, error) {
+func Ping(ipV4Address string, interval, timeout time.Duration) (*parser.PingOutput, error) {
 	var (
 		output, errorOutput bytes.Buffer
 		exitCode            int
