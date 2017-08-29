@@ -2,6 +2,7 @@ package parser
 
 import (
 	"testing"
+	"time"
 )
 
 const (
@@ -22,5 +23,29 @@ func TestSimplePing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("result: %#v", po)
+	if len(po.Replies) != 3 {
+		t.Error("invalid number of replies found")
+	}
+
+	if po.Replies[1].SequenceNumber != 2 {
+		t.Error("invalid sequence number found")
+	}
+
+	if po.Replies[2].Time != time.Duration(31)*time.Microsecond {
+		t.Error("invalid time of reply 2 found")
+	}
+
+	// check some fields
+	if po.Stats.RoundTrip != time.Duration(21)*time.Microsecond {
+		t.Error("invalid RTT found")
+	}
+	if po.Stats.Average != time.Duration(26)*time.Microsecond {
+		t.Error("invalid avg found")
+	}
+	if po.Stats.Max != time.Duration(31)*time.Microsecond {
+		t.Error("invalid max found")
+	}
+	if po.Stats.MeanDeviation != time.Duration(4)*time.Microsecond {
+		t.Error("invalid max found")
+	}
 }
