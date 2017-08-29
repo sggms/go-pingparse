@@ -28,6 +28,14 @@ rtt min/avg/max/mdev = 0.090/0.094/0.098/0.004 ms
 --- 172.17.0.1 ping statistics ---
 3 packets transmitted, 0 received, 100% packet loss, time 10205ms
 `
+	payload4 = `PING 172.17.0.2 (172.17.0.2) 56(84) bytes of data.
+64 bytes from 172.17.0.2: icmp_seq=4 ttl=63 time=286 ms
+64 bytes from 172.17.0.2: icmp_seq=5 ttl=63 time=111 ms
+
+--- 172.17.0.2 ping statistics ---
+5 packets transmitted, 2 received, 60% packet loss, time 4055ms
+rtt min/avg/max/mdev = 111.409/198.736/286.063/87.327 ms
+`
 )
 
 func TestSimplePing(t *testing.T) {
@@ -115,5 +123,24 @@ func TestFailedPing(t *testing.T) {
 	}
 	if po.Stats.Time != time.Duration(10205)*time.Millisecond {
 		t.Error("invalid stats time found")
+	}
+}
+
+func TestPingDifferent(t *testing.T) {
+	po, err := Parse(payload4)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(po.Replies) != 2 {
+		t.Fatal("invalid number of replies found")
+	}
+
+	if po.Replies[1].SequenceNumber != 5 {
+		t.Error("invalid sequence number found")
+	}
+
+	if po.Replies[0].Time != time.Duration(286)*time.Millisecond {
+		t.Error("invalid time of reply found")
 	}
 }

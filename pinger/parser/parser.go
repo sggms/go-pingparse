@@ -9,21 +9,20 @@ import (
 )
 
 var (
-	ErrNotEnoughLines        = errors.New("not enough lines")
-	ErrHeaderMismatch        = errors.New("header mismatch")
-	ErrUnexpectedFloatFormat = errors.New("unexpected float format")
-	ErrUnrecognizedLine      = errors.New("unrecognized ping reply line")
-	ErrMalformedStatsHeader  = errors.New("malformed stats header")
-	ErrMalformedStatsLine1   = errors.New("malformed stats line 1")
-	ErrMalformedStatsLine2   = errors.New("malformed stats line 2")
+	ErrNotEnoughLines       = errors.New("not enough lines")
+	ErrHeaderMismatch       = errors.New("header mismatch")
+	ErrUnrecognizedLine     = errors.New("unrecognized ping reply line")
+	ErrMalformedStatsHeader = errors.New("malformed stats header")
+	ErrMalformedStatsLine1  = errors.New("malformed stats line 1")
+	ErrMalformedStatsLine2  = errors.New("malformed stats line 2")
 )
 
 var (
 	headerRx         = regexp.MustCompile(`^PING (\d+\.\d+\.\d+\.\d+) \((\d+\.\d+\.\d+\.\d+)\) (\d+)\((\d+)\) bytes of data\.$`)
-	lineRx           = regexp.MustCompile(`^(\d+) bytes from (\d+\.\d+\.\d+\.\d+): icmp_seq=(\d+) ttl=(\d+) time=(\d+\.\d+) ms$`)
+	lineRx           = regexp.MustCompile(`^(\d+) bytes from (\d+\.\d+\.\d+\.\d+): icmp_seq=(\d+) ttl=(\d+) time=(.*)$`)
 	statsSeparatorRx = regexp.MustCompile(`^--- (\d+\.\d+\.\d+\.\d+) ping statistics ---$`)
-	statsLine1       = regexp.MustCompile(`^(\d+) packets transmitted, (\d+) received, (\d+)% packet loss, time (\d+)ms$`)
-	statsLine2       = regexp.MustCompile(`^rtt min/avg/max/mdev = (\d+\.\d+)/(\d+\.\d+)/(\d+\.\d+)/(\d+\.\d+) ms$`)
+	statsLine1       = regexp.MustCompile(`^(\d+) packets transmitted, (\d+) received, (\d+)% packet loss, time (.*)$`)
+	statsLine2       = regexp.MustCompile(`^rtt min/avg/max/mdev = ([^/]+)/([^/]+)/([^/]+)/([^ ]+) (.*)$`)
 )
 
 // PingOutput contains the whole ping operation output.
@@ -115,7 +114,7 @@ func Parse(s string) (*PingOutput, error) {
 		}
 		pr.TTL = uint(replyTTL)
 
-		pr.Time, err = parseMs(m[5])
+		pr.Time, err = time.ParseDuration(strings.Replace(m[5], " ", "", -1))
 		if err != nil {
 			return nil, err
 		}
@@ -154,52 +153,38 @@ func Parse(s string) (*PingOutput, error) {
 	}
 	po.Stats.PacketLossPercent = uint8(packetLossPcent)
 
-	t, err := strconv.ParseUint(m[4], 10, 64)
+	po.Stats.Time, err = time.ParseDuration(m[4])
 	if err != nil {
 		return nil, err
 	}
-	po.Stats.Time = time.Millisecond * time.Duration(t)
 
 	if len(po.Replies) != 0 {
 		// parse stats line 2
 		last++
 		m = statsLine2.FindStringSubmatch(lines[last])
-		if len(m) != 5 {
+		if len(m) != 6 {
 			return nil, ErrMalformedStatsLine2
 		}
 
-		po.Stats.RoundTrip, err = parseMs(m[1])
+		unit := m[5]
+
+		po.Stats.RoundTrip, err = time.ParseDuration(m[1] + unit)
 		if err != nil {
 			return nil, err
 		}
-		po.Stats.Average, err = parseMs(m[2])
+		po.Stats.Average, err = time.ParseDuration(m[2] + unit)
 		if err != nil {
 			return nil, err
 		}
-		po.Stats.Max, err = parseMs(m[3])
+		po.Stats.Max, err = time.ParseDuration(m[3] + unit)
 		if err != nil {
 			return nil, err
 		}
-		po.Stats.MeanDeviation, err = parseMs(m[4])
+		po.Stats.MeanDeviation, err = time.ParseDuration(m[4] + unit)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &po, nil
-}
-
-func parseMs(s string) (time.Duration, error) {
-	if len(s) != 5 {
-		return 0, ErrUnexpectedFloatFormat
-	}
-
-	// remove dot and leading zeroes
-	s = strings.TrimLeft(strings.Replace(s, ".", "", -1), "0")
-	us, err := strconv.ParseUint(s, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return time.Microsecond * time.Duration(us), nil
 }
