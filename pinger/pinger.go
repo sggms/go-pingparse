@@ -1,3 +1,10 @@
 package pingparse
 
-func New() *Pinger
+import (
+	"github.com/sggms/go-pingparse/pinger/parser"
+)
+
+func Ping(host string) (*parser.PingOutput, error) {
+
+	return parser.Parse("")
+}
