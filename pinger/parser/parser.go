@@ -23,6 +23,7 @@ var (
 	statsSeparatorRx = regexp.MustCompile(`^--- (\d+\.\d+\.\d+\.\d+) ping statistics ---$`)
 	statsLine1       = regexp.MustCompile(`^(\d+) packets transmitted, (\d+) received, (\d+)% packet loss, time (.*)$`)
 	statsLine2       = regexp.MustCompile(`^rtt min/avg/max/mdev = ([^/]+)/([^/]+)/([^/]+)/([^ ]+) (.*)$`)
+	pipeNo           = regexp.MustCompile(`([^,]+), pipe (\d+)$`)
 )
 
 // PingOutput contains the whole ping operation output.
@@ -158,32 +159,39 @@ func Parse(s string) (*PingOutput, error) {
 		return nil, err
 	}
 
-	if len(po.Replies) != 0 {
-		// parse stats line 2
-		last++
-		m = statsLine2.FindStringSubmatch(lines[last])
-		if len(m) != 6 {
-			return nil, ErrMalformedStatsLine2
-		}
+	if len(po.Replies) == 0 {
+		return &po, nil
+	}
 
-		unit := m[5]
+	// parse stats line 2
+	last++
+	m = statsLine2.FindStringSubmatch(lines[last])
+	if len(m) != 6 {
+		return nil, ErrMalformedStatsLine2
+	}
 
-		po.Stats.RoundTrip, err = time.ParseDuration(m[1] + unit)
-		if err != nil {
-			return nil, err
-		}
-		po.Stats.Average, err = time.ParseDuration(m[2] + unit)
-		if err != nil {
-			return nil, err
-		}
-		po.Stats.Max, err = time.ParseDuration(m[3] + unit)
-		if err != nil {
-			return nil, err
-		}
-		po.Stats.MeanDeviation, err = time.ParseDuration(m[4] + unit)
-		if err != nil {
-			return nil, err
-		}
+	unit := m[5]
+	pm := pipeNo.FindStringSubmatch(unit)
+	if len(pm) > 1 {
+		unit = pm[1]
+		// pipe number in pm[2] is ignored
+	}
+
+	po.Stats.RoundTrip, err = time.ParseDuration(m[1] + unit)
+	if err != nil {
+		return nil, err
+	}
+	po.Stats.Average, err = time.ParseDuration(m[2] + unit)
+	if err != nil {
+		return nil, err
+	}
+	po.Stats.Max, err = time.ParseDuration(m[3] + unit)
+	if err != nil {
+		return nil, err
+	}
+	po.Stats.MeanDeviation, err = time.ParseDuration(m[4] + unit)
+	if err != nil {
+		return nil, err
 	}
 
 	return &po, nil
