@@ -13,7 +13,9 @@ var (
 	ErrHeaderMismatch        = errors.New("header mismatch")
 	ErrUnexpectedFloatFormat = errors.New("unexpected float format")
 	ErrUnrecognizedLine      = errors.New("unrecognized ping reply line")
-	ErrMalformedStats        = errors.New("malformed stats")
+	ErrMalformedStatsHeader  = errors.New("malformed stats header")
+	ErrMalformedStatsLine1   = errors.New("malformed stats line 1")
+	ErrMalformedStatsLine2   = errors.New("malformed stats line 2")
 )
 
 var (
@@ -56,6 +58,7 @@ type PingStatistics struct {
 	MeanDeviation      time.Duration
 }
 
+// Parse will parse the specified ping output and return all the information in a a PingOutput object.
 func Parse(s string) (*PingOutput, error) {
 	var po PingOutput
 
@@ -85,7 +88,7 @@ func Parse(s string) (*PingOutput, error) {
 	var last int
 	for i, line := range lines[1:] {
 		if line == "" {
-			last = i
+			last = i + 2
 			break
 		}
 		m := lineRx.FindStringSubmatch(line)
@@ -120,16 +123,18 @@ func Parse(s string) (*PingOutput, error) {
 		po.Replies = append(po.Replies, pr)
 	}
 
-	header := lines[last+2]
-	m = statsSeparatorRx.FindStringSubmatch(header)
+	// parse header
+	m = statsSeparatorRx.FindStringSubmatch(lines[last])
 	if len(m) != 2 {
-		return nil, ErrMalformedStats
+		return nil, ErrMalformedStatsHeader
 	}
 	po.Stats.IPAddress = m[1]
 
-	m = statsLine1.FindStringSubmatch(lines[last+3])
+	// parse stats line 1
+	last++
+	m = statsLine1.FindStringSubmatch(lines[last])
 	if len(m) != 5 {
-		return nil, ErrMalformedStats
+		return nil, ErrMalformedStatsLine1
 	}
 	packetsTransmitted, err := strconv.ParseUint(m[1], 10, 64)
 	if err != nil {
@@ -155,26 +160,30 @@ func Parse(s string) (*PingOutput, error) {
 	}
 	po.Stats.Time = time.Millisecond * time.Duration(t)
 
-	m = statsLine2.FindStringSubmatch(lines[last+4])
-	if len(m) != 5 {
-		return nil, ErrMalformedStats
-	}
+	if len(po.Replies) != 0 {
+		// parse stats line 2
+		last++
+		m = statsLine2.FindStringSubmatch(lines[last])
+		if len(m) != 5 {
+			return nil, ErrMalformedStatsLine2
+		}
 
-	po.Stats.RoundTrip, err = parseMs(m[1])
-	if err != nil {
-		return nil, err
-	}
-	po.Stats.Average, err = parseMs(m[2])
-	if err != nil {
-		return nil, err
-	}
-	po.Stats.Max, err = parseMs(m[3])
-	if err != nil {
-		return nil, err
-	}
-	po.Stats.MeanDeviation, err = parseMs(m[4])
-	if err != nil {
-		return nil, err
+		po.Stats.RoundTrip, err = parseMs(m[1])
+		if err != nil {
+			return nil, err
+		}
+		po.Stats.Average, err = parseMs(m[2])
+		if err != nil {
+			return nil, err
+		}
+		po.Stats.Max, err = parseMs(m[3])
+		if err != nil {
+			return nil, err
+		}
+		po.Stats.MeanDeviation, err = parseMs(m[4])
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &po, nil
