@@ -18,12 +18,14 @@ var (
 )
 
 var (
-	headerRx         = regexp.MustCompile(`^PING (\d+\.\d+\.\d+\.\d+) \((\d+\.\d+\.\d+\.\d+)\) (\d+)\((\d+)\) bytes of data\.$`)
-	lineRx           = regexp.MustCompile(`^(\d+) bytes from (\d+\.\d+\.\d+\.\d+): icmp_seq=(\d+) ttl=(\d+) time=(.*)$`)
-	statsSeparatorRx = regexp.MustCompile(`^--- (\d+\.\d+\.\d+\.\d+) ping statistics ---$`)
-	statsLine1       = regexp.MustCompile(`^(\d+) packets transmitted, (\d+) received, (\d+)% packet loss, time (.*)$`)
-	statsLine2       = regexp.MustCompile(`^rtt min/avg/max/mdev = ([^/]+)/([^/]+)/([^/]+)/([^ ]+) (.*)$`)
-	pipeNo           = regexp.MustCompile(`([^,]+), pipe (\d+)$`)
+	headerRx             = regexp.MustCompile(`^PING (\d+\.\d+\.\d+\.\d+) \((\d+\.\d+\.\d+\.\d+)\) (\d+)\((\d+)\) bytes of data\.$`)
+	lineRx               = regexp.MustCompile(`^(\d+) bytes from (\d+\.\d+\.\d+\.\d+): icmp_seq=(\d+) ttl=(\d+) time=(.*)$`)
+	statsSeparatorRx     = regexp.MustCompile(`^--- (\d+\.\d+\.\d+\.\d+) ping statistics ---$`)
+	statsLine1           = regexp.MustCompile(`^(\d+) packets transmitted, (\d+) received, (\d+)% packet loss, time (.*)$`)
+	statsLine1WithErrors = regexp.MustCompile(`^(\d+) packets transmitted, (\d+) received, \+(\d+) errors, (\d+)% packet loss, time (.*)$`)
+	statsLine2           = regexp.MustCompile(`^rtt min/avg/max/mdev = ([^/]+)/([^/]+)/([^/]+)/([^ ]+) (.*)$`)
+	pipeNo               = regexp.MustCompile(`([^,]+), pipe (\d+)$`)
+	hostErrorLineRx      = regexp.MustCompile(`^From (\d+\.\d+\.\d+\.\d+) icmp_seq=(\d+) (.*)$`)
 )
 
 // PingOutput contains the whole ping operation output.
@@ -43,6 +45,7 @@ type PingReply struct {
 	SequenceNumber uint
 	TTL            uint
 	Time           time.Duration
+	Error          string
 }
 
 // PingStatistics contains the statistics of the whole ping operation.
@@ -50,6 +53,7 @@ type PingStatistics struct {
 	IPAddress          string
 	PacketsTransmitted uint
 	PacketsReceived    uint
+	Errors             uint
 	PacketLossPercent  uint8
 	Time               time.Duration
 	RoundTrip          time.Duration
@@ -91,12 +95,26 @@ func Parse(s string) (*PingOutput, error) {
 			last = i + 2
 			break
 		}
+		var pr PingReply
+
 		m := lineRx.FindStringSubmatch(line)
 		if len(m) != 6 {
+			// try to match a host problem line
+			m = hostErrorLineRx.FindStringSubmatch(line)
+			if len(m) == 4 {
+				pr.FromAddress = m[1]
+				replySeqNo, err := strconv.ParseUint(m[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				pr.SequenceNumber = uint(replySeqNo)
+				pr.Error = m[3]
+
+				po.Replies = append(po.Replies, pr)
+				continue
+			}
 			return nil, ErrUnrecognizedLine
 		}
-
-		var pr PingReply
 
 		replySize, err := strconv.ParseUint(m[1], 10, 64)
 		if err != nil {
@@ -133,8 +151,16 @@ func Parse(s string) (*PingOutput, error) {
 	// parse stats line 1
 	last++
 	m = statsLine1.FindStringSubmatch(lines[last])
+	var idx int
+	var hasError bool
 	if len(m) != 5 {
-		return nil, ErrMalformedStatsLine1
+		// check if it's a line with errors
+		m = statsLine1WithErrors.FindStringSubmatch(lines[last])
+		if len(m) != 6 {
+			return nil, ErrMalformedStatsLine1
+		}
+		hasError = true
+		idx = 1
 	}
 	packetsTransmitted, err := strconv.ParseUint(m[1], 10, 64)
 	if err != nil {
@@ -148,18 +174,35 @@ func Parse(s string) (*PingOutput, error) {
 	}
 	po.Stats.PacketsReceived = uint(packetsReceived)
 
-	packetLossPcent, err := strconv.ParseUint(m[3], 10, 64)
+	if hasError {
+		errCount, err := strconv.ParseUint(m[3], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		po.Stats.Errors = uint(errCount)
+	}
+
+	packetLossPcent, err := strconv.ParseUint(m[3+idx], 10, 64)
 	if err != nil {
 		return nil, err
 	}
 	po.Stats.PacketLossPercent = uint8(packetLossPcent)
 
-	po.Stats.Time, err = time.ParseDuration(m[4])
+	po.Stats.Time, err = time.ParseDuration(m[4+idx])
 	if err != nil {
 		return nil, err
 	}
 
-	if len(po.Replies) == 0 {
+	validReplies := 0
+	// check if a summary second line of stats is expected
+	for _, pr := range po.Replies {
+		if pr.Error != `` {
+			continue
+		}
+		validReplies++
+	}
+
+	if validReplies == 0 {
 		return &po, nil
 	}
 
