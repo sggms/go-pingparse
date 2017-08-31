@@ -17,7 +17,7 @@ func Ping(ipV4Address string, interval, timeout time.Duration) (*parser.PingOutp
 		exitCode            int
 	)
 
-	cmd := exec.Command("ping", "-n", "-v", "-w", fmt.Sprintf("%d", int(timeout.Seconds())), "-i", fmt.Sprintf("%d", int(interval.Seconds())), ipV4Address)
+	cmd := exec.Command("ping", "-n", "-w", fmt.Sprintf("%d", int(timeout.Seconds())), "-i", fmt.Sprintf("%d", int(interval.Seconds())), ipV4Address)
 	cmd.Stdout = &output
 	cmd.Stderr = &errorOutput
 
