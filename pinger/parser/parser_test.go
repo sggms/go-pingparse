@@ -159,6 +159,30 @@ var (
 				PacketLossPercent:  100,
 			},
 		},
+		// 8
+		PingOutput{
+			Host:              `172.17.0.5`,
+			ResolvedIPAddress: `172.17.0.5`,
+			PayloadSize:       56,
+			Replies: []PingReply{
+				PingReply{64, `172.17.0.5`, 0, 61, 67758 * time.Microsecond, "", false},
+				PingReply{64, `172.17.0.5`, 1, 61, 104863 * time.Microsecond, "", false},
+				PingReply{64, `172.17.0.5`, 2, 61, 78562 * time.Microsecond, "", false},
+				PingReply{64, `172.17.0.5`, 2, 61, 96818 * time.Microsecond, "", true},
+				PingReply{64, `172.17.0.5`, 3, 61, 71488 * time.Microsecond, "", false},
+				PingReply{64, `172.17.0.5`, 4, 61, 80193 * time.Microsecond, "", false},
+			},
+			Stats: PingStatistics{
+				IPAddress:          `172.17.0.5`,
+				PacketsTransmitted: 6,
+				PacketsReceived:    5,
+				PacketLossPercent:  16,
+				RoundTripMin:       67758 * time.Microsecond,
+				RoundTripMax:       104863 * time.Microsecond,
+				RoundTripAverage:   83280 * time.Microsecond,
+				RoundTripDeviation: 13297 * time.Microsecond,
+			},
+		},
 	}
 	payloads = []string{
 		// 0
@@ -225,6 +249,18 @@ round-trip min/avg/max/stddev = 0.057/0.075/0.108/0.023 ms
 		`PING 172.17.0.4 (172.17.0.4): 56 data bytes, id 0x05e1 = 1505
 --- 172.17.0.4 ping statistics ---
 6 packets transmitted, 0 packets received, 100% packet loss
+`,
+		// 8
+		`PING 172.17.0.5 (172.17.0.5): 56 data bytes
+64 bytes from 172.17.0.5: icmp_seq=0 ttl=61 time=67.758 ms
+64 bytes from 172.17.0.5: icmp_seq=1 ttl=61 time=104.863 ms
+64 bytes from 172.17.0.5: icmp_seq=2 ttl=61 time=78.562 ms
+64 bytes from 172.17.0.5: icmp_seq=2 ttl=61 time=96.818 ms (DUP!)
+64 bytes from 172.17.0.5: icmp_seq=3 ttl=61 time=71.488 ms
+64 bytes from 172.17.0.5: icmp_seq=4 ttl=61 time=80.193 ms
+--- 172.17.0.5 ping statistics ---
+6 packets transmitted, 5 packets received, +1 duplicates, 16% packet loss
+round-trip min/avg/max/stddev = 67.758/83.280/104.863/13.297 ms
 `,
 	}
 )
@@ -300,6 +336,9 @@ func TestPings(t *testing.T) {
 			}
 
 			for i := 0; i < len(po.Replies); i++ {
+				if i >= len(expected.Replies) {
+					break
+				}
 				pr := po.Replies[i]
 				epr := expected.Replies[i]
 				if epr.SequenceNumber != pr.SequenceNumber {
