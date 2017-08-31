@@ -116,7 +116,7 @@ var (
 			PayloadSize:       56,
 			PayloadActualSize: 84,
 			Replies: []PingReply{
-				PingReply{0, ``, 2, 0, 0, "Destination Host Unreachable", false},
+				PingReply{0, `93.184.216.34`, 2, 0, 0, "Destination Host Unreachable", false},
 			},
 			Stats: PingStatistics{
 				IPAddress:          `172.17.0.3`,
@@ -181,6 +181,24 @@ var (
 				RoundTripMax:       104863 * time.Microsecond,
 				RoundTripAverage:   83280 * time.Microsecond,
 				RoundTripDeviation: 13297 * time.Microsecond,
+			},
+		},
+		// 9
+		PingOutput{
+			Host:              `172.17.0.6`,
+			ResolvedIPAddress: `172.17.0.6`,
+			PayloadSize:       56,
+			Replies: []PingReply{
+				PingReply{92, `93.184.216.34`, 0, 0, 0, "Destination Host Unreachable", false},
+				PingReply{92, `93.184.216.34`, 0, 0, 0, "Destination Host Unreachable", false},
+				PingReply{92, `93.184.216.34`, 0, 0, 0, "Destination Host Unreachable", false},
+			},
+			Stats: PingStatistics{
+				IPAddress:          `172.17.0.6`,
+				Errors:             0,
+				PacketsTransmitted: 6,
+				PacketsReceived:    0,
+				PacketLossPercent:  100,
 			},
 		},
 	}
@@ -262,8 +280,22 @@ round-trip min/avg/max/stddev = 0.057/0.075/0.108/0.023 ms
 6 packets transmitted, 5 packets received, +1 duplicates, 16% packet loss
 round-trip min/avg/max/stddev = 67.758/83.280/104.863/13.297 ms
 `,
+		// 9
+		`PING 172.17.0.6 (172.17.0.6): 56 data bytes
+92 bytes from 93.184.216.34: Destination Host Unreachable
+92 bytes from 93.184.216.34: Destination Host Unreachable
+92 bytes from 93.184.216.34: Destination Host Unreachable
+--- 172.17.0.6 ping statistics ---
+6 packets transmitted, 0 packets received, 100% packet loss
+`,
 	}
 )
+
+func init() {
+	if len(payloads) != len(expectedTestCases) {
+		panic("invalid payload/testcases defined")
+	}
+}
 
 func TestPings(t *testing.T) {
 	for i := 0; i < len(payloads); i++ {

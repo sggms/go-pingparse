@@ -3,6 +3,7 @@ package parser
 import (
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -35,7 +36,9 @@ var (
 	statsLine1       = regexp.MustCompile(`^(?P<packetsTransmitted>\d+) packets transmitted, (?P<packetsReceived>\d+) (packets )?received,( \+(?P<errors>\d+) errors,)?( \+(?P<duplicates>\d+) duplicates,)? (?P<packetLoss>\d+)% packet loss(, time (?P<time>.*))?$`)
 	statsLine2       = regexp.MustCompile(`^(rtt|round-trip) min/avg/max/(mdev|stddev) = (?P<min>[^/]+)/(?P<avg>[^/]+)/(?P<max>[^/]+)/(?P<mdev>[^ ]+) (?P<unit>.*)$`)
 	pipeNo           = regexp.MustCompile(`(?P<unit>[^,]+), pipe (?P<pipeNo>\d+)$`)
-	hostErrorLineRx  = regexp.MustCompile(`^From (?P<fromIPAddress>\d+\.\d+\.\d+\.\d+) icmp_seq=(?P<seqNo>\d+) (?P<error>.*)$`)
+	pipeNoLine       = regexp.MustCompile(`^pipe (?P<pipeNo>\d+)$`)
+	hostErrorLineRx1 = regexp.MustCompile(`^From (?P<fromAddress>\d+\.\d+\.\d+\.\d+) icmp_seq=(?P<seqNo>\d+) (?P<error>.*)$`)
+	hostErrorLineRx2 = regexp.MustCompile(`^(?P<replySize>\d+) bytes from (?P<fromAddress>\d+\.\d+\.\d+\.\d+): (?P<error>.*)$`)
 )
 
 // PingOutput contains the whole ping operation output.
@@ -135,54 +138,54 @@ func Parse(s string) (*PingOutput, error) {
 
 		result = matchAsMap(lineRx, line)
 		if len(result) == 0 {
-			// try to match a host problem line
-			result := matchAsMap(hostErrorLineRx, line)
-			if len(result) != 0 {
-				pr.FromAddress = result["fromAddress"]
-				replySeqNo, err := strconv.ParseUint(result["seqNo"], 10, 64)
-				if err != nil {
-					return nil, ConversionError{"error reply seqNo", err}
+			// try to match a host error line
+			result = matchAsMap(hostErrorLineRx1, line)
+			if len(result) == 0 {
+				result = matchAsMap(hostErrorLineRx2, line)
+				if len(result) == 0 {
+					// some ping outputs have a new line separator, others don't
+					result = matchAsMap(statsSeparatorRx, line)
+					if len(result) != 0 {
+						last = i + 1
+						break
+					}
+
+					return nil, ErrUnrecognizedLine
 				}
-				pr.SequenceNumber = uint(replySeqNo)
-				pr.Error = result["error"]
-
-				// cleanup 'result', as it is checked after the loop
-				result = map[string]string{}
-
-				po.Replies = append(po.Replies, pr)
-				continue
 			}
-
-			// some ping outputs have a new line separator, others don't
-			result = matchAsMap(statsSeparatorRx, line)
-			if len(result) != 0 {
-				last = i + 1
-				break
-			}
-
-			return nil, ErrUnrecognizedLine
 		}
 
-		replySize, err := strconv.ParseUint(result["replySize"], 10, 64)
-		if err != nil {
-			return nil, ConversionError{"replySize", err}
+		if v, ok := result["replySize"]; ok && len(v) != 0 {
+			replySize, err := strconv.ParseUint(v, 10, 64)
+			if err != nil {
+				return nil, ConversionError{"replySize", err}
+			}
+			pr.Size = uint(replySize)
 		}
-		pr.Size = uint(replySize)
 		pr.FromAddress = result["fromAddress"]
-		replySeqNo, err := strconv.ParseUint(result["seqNo"], 10, 64)
-		if err != nil {
-			return nil, ConversionError{"reply seqNo", err}
-		}
-		pr.SequenceNumber = uint(replySeqNo)
-		replyTTL, err := strconv.ParseUint(result["ttl"], 10, 64)
-		if err != nil {
-			return nil, ConversionError{"ttl", err}
-		}
-		pr.TTL = uint(replyTTL)
+		pr.Error = result["error"]
 
-		pr.Time, err = time.ParseDuration(strings.Replace(result["time"], " ", "", -1))
-		if err != nil {
-			return nil, ConversionError{"ping reply time", err}
+		if v, ok := result["seqNo"]; ok && len(v) != 0 {
+			replySeqNo, err := strconv.ParseUint(v, 10, 64)
+			if err != nil {
+				return nil, ConversionError{"reply seqNo", err}
+			}
+			pr.SequenceNumber = uint(replySeqNo)
+		}
+
+		if v, ok := result["ttl"]; ok && len(v) != 0 {
+			replyTTL, err := strconv.ParseUint(v, 10, 64)
+			if err != nil {
+				return nil, ConversionError{"ttl", err}
+			}
+			pr.TTL = uint(replyTTL)
+		}
+
+		if v, ok := result["time"]; ok && len(v) != 0 {
+			pr.Time, err = time.ParseDuration(strings.Replace(v, " ", "", -1))
+			if err != nil {
+				return nil, ConversionError{"ping reply time", err}
+			}
 		}
 
 		// cleanup 'result', as it is checked after the loop
@@ -255,6 +258,14 @@ func Parse(s string) (*PingOutput, error) {
 	last++
 	result = matchAsMap(statsLine2, lines[last])
 	if len(result) == 0 {
+		result = matchAsMap(pipeNoLine, lines[last])
+		if len(result) != 0 {
+			// ignore pipe number
+			return &po, nil
+		}
+
+		log.Println("faulty:", lines[last])
+
 		return nil, ErrMalformedStatsLine2
 	}
 
@@ -262,7 +273,7 @@ func Parse(s string) (*PingOutput, error) {
 	pm := matchAsMap(pipeNo, unit)
 	if len(pm) != 0 {
 		unit = pm["unit"]
-		// pipe number in pm[2] is ignored
+		// pipe number is ignored
 	}
 
 	po.Stats.RoundTripMin, err = time.ParseDuration(result["min"] + unit)
