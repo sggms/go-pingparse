@@ -147,6 +147,18 @@ var (
 				RoundTripDeviation: 23 * time.Microsecond,
 			},
 		},
+		// 7
+		PingOutput{
+			Host:              `172.17.0.4`,
+			ResolvedIPAddress: `172.17.0.4`,
+			PayloadSize:       56,
+			Stats: PingStatistics{
+				IPAddress:          `172.17.0.4`,
+				PacketsTransmitted: 6,
+				PacketsReceived:    0,
+				PacketLossPercent:  100,
+			},
+		},
 	}
 	payloads = []string{
 		// 0
@@ -208,7 +220,13 @@ pipe 3
 --- 127.0.0.1 ping statistics ---
 3 packets transmitted, 3 packets received, 0% packet loss
 round-trip min/avg/max/stddev = 0.057/0.075/0.108/0.023 ms
-`}
+`,
+		// 7
+		`PING 172.17.0.4 (172.17.0.4): 56 data bytes, id 0x05e1 = 1505
+--- 172.17.0.4 ping statistics ---
+6 packets transmitted, 0 packets received, 100% packet loss
+`,
+	}
 )
 
 func TestPings(t *testing.T) {

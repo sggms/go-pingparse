@@ -92,7 +92,7 @@ func Parse(s string) (*PingOutput, error) {
 
 	// separate full output text into lines
 	lines := strings.Split(s, "\n")
-	if len(lines) < 5 {
+	if len(lines) < 4 {
 		return nil, ErrNotEnoughLines
 	}
 
