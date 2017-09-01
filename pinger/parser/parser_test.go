@@ -297,6 +297,17 @@ func init() {
 	}
 }
 
+func TestPayloadsValidity(t *testing.T) {
+	for i, tc := range expectedTestCases {
+		if tc.Stats.PacketsTransmitted == 0 {
+			t.Errorf("testcase #%d: no packets transmitted", i)
+		}
+		if tc.Stats.PacketLossPercent == 0 && tc.Stats.PacketsReceived != tc.Stats.PacketsTransmitted {
+			t.Errorf("testcase #%d: invalid packet loss percentage", i)
+		}
+	}
+}
+
 func TestPings(t *testing.T) {
 	for i := 0; i < len(payloads); i++ {
 		// capture range variables
