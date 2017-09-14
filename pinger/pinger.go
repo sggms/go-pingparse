@@ -10,14 +10,14 @@ import (
 	"github.com/sggms/go-pingparse/pinger/parser"
 )
 
-// Ping will ping the specified IPv4 address wit the provided timeout and interval settings.
-func Ping(ipV4Address string, interval, timeout time.Duration) (*parser.PingOutput, error) {
+// Ping will ping the specified IPv4 address wit the provided timeout, interval and size settings .
+func Ping(ipV4Address string, interval, timeout time.Duration, size uint) (*parser.PingOutput, error) {
 	var (
 		output, errorOutput bytes.Buffer
 		exitCode            int
 	)
 
-	cmd := exec.Command("ping", "-n", "-w", fmt.Sprintf("%d", int(timeout.Seconds())), "-i", fmt.Sprintf("%d", int(interval.Seconds())), ipV4Address)
+	cmd := exec.Command("ping", "-n", "-s", fmt.Sprintf("%d", size), "-w", fmt.Sprintf("%d", int(timeout.Seconds())), "-i", fmt.Sprintf("%d", int(interval.Seconds())), ipV4Address)
 	cmd.Stdout = &output
 	cmd.Stderr = &errorOutput
 
