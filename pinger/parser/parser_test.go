@@ -201,6 +201,34 @@ var (
 				PacketLossPercent:  100,
 			},
 		},
+		// 10
+		PingOutput{
+			Host:              `172.17.0.7`,
+			ResolvedIPAddress: `172.17.0.7`,
+			PayloadSize:       56,
+			Replies: []PingReply{
+				PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x0, TTL: 0x3d, Time: 213159000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.9", SequenceNumber: 0x7, TTL: 0x3e, Time: 369330000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x1, TTL: 0x3d, Time: 174611000, Error: "", Duplicate: false},
+				PingReply{Size: 0x40, FromAddress: "172.17.0.9", SequenceNumber: 0x8, TTL: 0x3e, Time: 334101000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x2, TTL: 0x3d, Time: 152070000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.9", SequenceNumber: 0x9, TTL: 0x3e, Time: 287969000, Error: "", Duplicate: false},
+				PingReply{Size: 0x40, FromAddress: "172.17.0.9", SequenceNumber: 0xa, TTL: 0x3e, Time: 238498000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x3, TTL: 0x3d, Time: 419658000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.9", SequenceNumber: 0xb, TTL: 0x3e, Time: 215092000, Error: "", Duplicate: false},
+				PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x4, TTL: 0x3d, Time: 372099000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.9", SequenceNumber: 0xc, TTL: 0x3e, Time: 215086000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x5, TTL: 0x3d, Time: 331753000, Error: "", Duplicate: false},
+				PingReply{Size: 0x40, FromAddress: "172.17.0.9", SequenceNumber: 0xd, TTL: 0x3e, Time: 215250000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x6, TTL: 0x3d, Time: 291464000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x7, TTL: 0x3d, Time: 250387000, Error: "", Duplicate: false},
+				PingReply{Size: 0x40, FromAddress: "172.17.0.9", SequenceNumber: 0xe, TTL: 0x3e, Time: 405092000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.9", SequenceNumber: 0xf, TTL: 0x3e, Time: 224332000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x8, TTL: 0x3d, Time: 210314000, Error: "", Duplicate: false},
+				PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0x9, TTL: 0x3d, Time: 169909000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0xa, TTL: 0x3d, Time: 449303000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0xb, TTL: 0x3d, Time: 409844000, Error: "", Duplicate: false},
+				PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0xc, TTL: 0x3d, Time: 369775000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0xd, TTL: 0x3d, Time: 329329000, Error: "", Duplicate: false}, PingReply{Size: 0x40, FromAddress: "172.17.0.7", SequenceNumber: 0xe, TTL: 0x3d, Time: 291038000, Error: "", Duplicate: false},
+			},
+			Stats: PingStatistics{
+				IPAddress:          `172.17.0.7`,
+				Errors:             0,
+				PacketsTransmitted: 16,
+				PacketsReceived:    24,
+				PacketLossPercent:  0,
+				RoundTripMin:       152070 * time.Microsecond,
+				RoundTripMax:       449303 * time.Microsecond,
+				RoundTripAverage:   289144 * time.Microsecond,
+				RoundTripDeviation: 86309 * time.Microsecond,
+				Warning:            "somebody is printing forged packets!",
+			},
+		},
 	}
 	payloads = []string{
 		// 0
@@ -288,6 +316,36 @@ round-trip min/avg/max/stddev = 67.758/83.280/104.863/13.297 ms
 --- 172.17.0.6 ping statistics ---
 6 packets transmitted, 0 packets received, 100% packet loss
 `,
+		// 10
+		`PING 172.17.0.7 (172.17.0.7): 56 data bytes
+64 bytes from 172.17.0.7: icmp_seq=0 ttl=61 time=213.159 ms
+64 bytes from 172.17.0.9: icmp_seq=7 ttl=62 time=369.330 ms
+64 bytes from 172.17.0.7: icmp_seq=1 ttl=61 time=174.611 ms
+64 bytes from 172.17.0.9: icmp_seq=8 ttl=62 time=334.101 ms
+64 bytes from 172.17.0.7: icmp_seq=2 ttl=61 time=152.070 ms
+64 bytes from 172.17.0.9: icmp_seq=9 ttl=62 time=287.969 ms
+64 bytes from 172.17.0.9: icmp_seq=10 ttl=62 time=238.498 ms
+64 bytes from 172.17.0.7: icmp_seq=3 ttl=61 time=419.658 ms
+64 bytes from 172.17.0.9: icmp_seq=11 ttl=62 time=215.092 ms
+64 bytes from 172.17.0.7: icmp_seq=4 ttl=61 time=372.099 ms
+64 bytes from 172.17.0.9: icmp_seq=12 ttl=62 time=215.086 ms
+64 bytes from 172.17.0.7: icmp_seq=5 ttl=61 time=331.753 ms
+64 bytes from 172.17.0.9: icmp_seq=13 ttl=62 time=215.250 ms
+64 bytes from 172.17.0.7: icmp_seq=6 ttl=61 time=291.464 ms
+64 bytes from 172.17.0.7: icmp_seq=7 ttl=61 time=250.387 ms
+64 bytes from 172.17.0.9: icmp_seq=14 ttl=62 time=405.092 ms
+64 bytes from 172.17.0.9: icmp_seq=15 ttl=62 time=224.332 ms
+64 bytes from 172.17.0.7: icmp_seq=8 ttl=61 time=210.314 ms
+64 bytes from 172.17.0.7: icmp_seq=9 ttl=61 time=169.909 ms
+64 bytes from 172.17.0.7: icmp_seq=10 ttl=61 time=449.303 ms
+64 bytes from 172.17.0.7: icmp_seq=11 ttl=61 time=409.844 ms
+64 bytes from 172.17.0.7: icmp_seq=12 ttl=61 time=369.775 ms
+64 bytes from 172.17.0.7: icmp_seq=13 ttl=61 time=329.329 ms
+64 bytes from 172.17.0.7: icmp_seq=14 ttl=61 time=291.038 ms
+--- 172.17.0.7 ping statistics ---
+16 packets transmitted, 24 packets received, -- somebody is printing forged packets!
+round-trip min/avg/max/stddev = 152.070/289.144/449.303/86.309 ms
+`,
 	}
 )
 
@@ -302,7 +360,7 @@ func TestPayloadsValidity(t *testing.T) {
 		if tc.Stats.PacketsTransmitted == 0 {
 			t.Errorf("testcase #%d: no packets transmitted", i)
 		}
-		if tc.Stats.PacketLossPercent == 0 && tc.Stats.PacketsReceived != tc.Stats.PacketsTransmitted {
+		if tc.Stats.PacketLossPercent == 0 && (tc.Stats.Warning == `` && tc.Stats.PacketsReceived != tc.Stats.PacketsTransmitted) {
 			t.Errorf("testcase #%d: invalid packet loss percentage", i)
 		}
 	}
@@ -373,9 +431,12 @@ func TestPings(t *testing.T) {
 			if po.Stats.PacketsTransmitted != expected.Stats.PacketsTransmitted {
 				t.Errorf("expected packets transmitted %v, but got %v", expected.Stats.PacketsTransmitted, po.Stats.PacketsTransmitted)
 			}
+			if po.Stats.Warning != expected.Stats.Warning {
+				t.Errorf("expected stats warning %q, but got %q", expected.Stats.Warning, po.Stats.Warning)
+			}
 
 			if len(expected.Replies) != len(po.Replies) {
-				t.Errorf("expected %d replies, but got %d", len(expected.Replies), len(po.Replies))
+				t.Errorf("expected %d replies, but got %d %#v", len(expected.Replies), len(po.Replies), po.Replies)
 			}
 
 			for i := 0; i < len(po.Replies); i++ {
