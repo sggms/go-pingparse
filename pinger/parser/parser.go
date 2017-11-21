@@ -196,6 +196,9 @@ func Parse(s string) (*PingOutput, error) {
 	}
 
 	if len(result) == 0 {
+		if last >= len(lines) {
+			return nil, ErrNotEnoughLines
+		}
 		// parse header
 		result = matchAsMap(statsSeparatorRx, lines[last])
 		if len(result) == 0 {
