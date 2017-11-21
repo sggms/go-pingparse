@@ -347,6 +347,23 @@ round-trip min/avg/max/stddev = 67.758/83.280/104.863/13.297 ms
 round-trip min/avg/max/stddev = 152.070/289.144/449.303/86.309 ms
 `,
 	}
+
+	failedPayloads = map[string]error{
+		`PING 172.17.0.7 (172.17.0.7): 64 data bytes
+72 bytes from 172.17.0.7: icmp_seq=0 ttl=61 time=140.850 ms
+72 bytes from 172.17.0.7: icmp_seq=1 ttl=61 time=177.935 ms
+72 bytes from 172.17.0.7: icmp_seq=2 ttl=61 time=138.084 ms
+72 bytes from 172.17.0.7: icmp_seq=3 ttl=61 time=168.642 ms
+72 bytes from 172.17.0.7: icmp_seq=4 ttl=61 time=166.699 ms
+72 bytes from 172.17.0.7: icmp_seq=5 ttl=61 time=167.026 ms
+72 bytes from 172.17.0.7: icmp_seq=6 ttl=61 time=136.036 ms
+72 bytes from 172.17.0.7: icmp_seq=7 ttl=61 time=145.995 ms
+72 bytes from 172.17.0.7: icmp_seq=8 ttl=61 time=145.516 ms
+72 bytes from 172.17.0.7: icmp_seq=9 ttl=61 time=143.324 ms
+72 bytes from 172.17.0.7: icmp_seq=10 ttl=61 time=162.485 ms
+72 bytes from 172.17.0.7: icmp_seq=11 ttl=61 time=161.856 ms
+`: ErrNotEnoughLines,
+	}
 )
 
 func init() {
@@ -476,5 +493,16 @@ func TestPings(t *testing.T) {
 
 		})
 	}
+}
 
+func TestFailed(t *testing.T) {
+	i := -1
+	for payload, expectedError := range failedPayloads {
+		i++
+		_, err := Parse(payload)
+		if err != expectedError {
+			t.Errorf("failed payload #%d: expected %v but got %v", i, expectedError, err)
+		}
+
+	}
 }
