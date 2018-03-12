@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,7 +18,8 @@ func Ping(ipV4Address string, interval, timeout time.Duration, size uint) (*pars
 		exitCode            int
 	)
 
-	cmd := exec.Command("ping", "-n", "-s", fmt.Sprintf("%d", size), "-w", fmt.Sprintf("%d", int(timeout.Seconds())), "-i", fmt.Sprintf("%d", int(interval.Seconds())), ipV4Address)
+	pingArgs := []string{"-n", "-s", fmt.Sprintf("%d", size), "-w", fmt.Sprintf("%d", int(timeout.Seconds())), "-i", fmt.Sprintf("%d", int(interval.Seconds())), ipV4Address}
+	cmd := exec.Command("ping", pingArgs...)
 	cmd.Stdout = &output
 	cmd.Stderr = &errorOutput
 
@@ -39,7 +41,7 @@ func Ping(ipV4Address string, interval, timeout time.Duration, size uint) (*pars
 	}
 
 	// in case of error, use also the execution context errors (if any)
-	return nil, fmt.Errorf("exit code: %d\nparse error: %v\nstdout:\n%s\nstderr:\n%s", exitCode, err, output.String(), errorOutput.String())
+	return nil, fmt.Errorf("command: ping %s\nexit code: %d\nparse error: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(pingArgs, " "), exitCode, err, output.String(), errorOutput.String())
 }
 
 func parseExitCode(err error) (int, error) {
