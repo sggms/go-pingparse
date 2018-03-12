@@ -13,6 +13,7 @@ import (
 var (
 	ErrNotEnoughLines       = errors.New("not enough lines")
 	ErrHeaderMismatch       = errors.New("header mismatch")
+	ErrUnknownHost          = errors.New("unkown host")
 	ErrUnrecognizedLine     = errors.New("unrecognized ping reply line")
 	ErrMalformedStatsHeader = errors.New("malformed stats header")
 	ErrMalformedStatsLine1  = errors.New("malformed stats line 1")
@@ -96,6 +97,11 @@ func Parse(s string) (*PingOutput, error) {
 	// separate full output text into lines
 	lines := strings.Split(s, "\n")
 	if len(lines) < 4 {
+		if len(lines) != 0 {
+			if lines[0] == "ping: unknown host" {
+				return nil, ErrUnknownHost
+			}
+		}
 		return nil, ErrNotEnoughLines
 	}
 

@@ -363,6 +363,8 @@ round-trip min/avg/max/stddev = 152.070/289.144/449.303/86.309 ms
 72 bytes from 172.17.0.7: icmp_seq=10 ttl=61 time=162.485 ms
 72 bytes from 172.17.0.7: icmp_seq=11 ttl=61 time=161.856 ms
 `: ErrNotEnoughLines,
+		`ping: unknown host
+`: ErrUnknownHost,
 	}
 )
 
