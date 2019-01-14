@@ -34,7 +34,7 @@ var (
 	headerRxAlt      = regexp.MustCompile(`^PING (?P<host>\d+\.\d+\.\d+\.\d+) \((?P<resolvedIPAddress>\d+\.\d+\.\d+\.\d+)\): (?P<payloadSize>\d+) data bytes`)
 	lineRx           = regexp.MustCompile(`^(?P<replySize>\d+) bytes from (?P<fromAddress>\d+\.\d+\.\d+\.\d+): icmp_seq=(?P<seqNo>\d+) ttl=(?P<ttl>\d+) time=(?P<time>.*)$`)
 	statsSeparatorRx = regexp.MustCompile(`^--- (?P<IPAddress>\d+\.\d+\.\d+\.\d+) ping statistics ---$`)
-	statsLine1       = regexp.MustCompile(`^(?P<packetsTransmitted>\d+) packets transmitted, (?P<packetsReceived>\d+) (packets )?received,( \+(?P<errors>\d+) errors,)?( \+(?P<duplicates>\d+) duplicates,)?( (?P<packetLoss>\d+)% packet loss)?(, time (?P<time>.*))?( \-\- (?P<warning>.*))?$`)
+	statsLine1       = regexp.MustCompile(`^(?P<packetsTransmitted>\d+) packets transmitted, (?P<packetsReceived>\d+) (packets )?received,( \+(?P<errors>\d+) errors,)?( \+(?P<duplicates>\d+) duplicates,)?( (?P<packetLoss>\-?\d+)% packet loss)?(, time (?P<time>.*))?( \-\- (?P<warning>.*))?$`)
 	statsLine2       = regexp.MustCompile(`^(rtt|round-trip) min/avg/max/(mdev|stddev) = (?P<min>[^/]+)/(?P<avg>[^/]+)/(?P<max>[^/]+)/(?P<mdev>[^ ]+) (?P<unit>.*)$`)
 	pipeNo           = regexp.MustCompile(`(?P<unit>[^,]+), pipe (?P<pipeNo>\d+)$`)
 	pipeNoLine       = regexp.MustCompile(`^pipe (?P<pipeNo>\d+)$`)
@@ -225,6 +225,7 @@ func Parse(s string) (*PingOutput, error) {
 	}
 	po.Stats.PacketsTransmitted = uint(packetsTransmitted)
 
+	// a negative packets received count will trigger a conversion error here
 	packetsReceived, err := strconv.ParseUint(result["packetsReceived"], 10, 64)
 	if err != nil {
 		return nil, ConversionError{"packetsReceived", err}

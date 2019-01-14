@@ -366,6 +366,33 @@ round-trip min/avg/max/stddev = 152.070/289.144/449.303/86.309 ms
 		`ping: unknown host
 `: ErrUnknownHost,
 	}
+	failedPayloadsByErrorString = map[string]string{
+		`PING 172.16.11.34 (172.16.11.34) 56(84) bytes of data.
+64 bytes from 172.16.11.34: icmp_seq=1 ttl=60 time=216 ms
+78 bytes from 172.16.0.89: icmp_seq=12 ttl=60 time=138 ms
+64 bytes from 172.16.11.34: icmp_seq=2 ttl=60 time=215 ms
+78 bytes from 172.16.0.89: icmp_seq=13 ttl=60 time=138 ms
+64 bytes from 172.16.11.34: icmp_seq=3 ttl=60 time=215 ms
+78 bytes from 172.16.0.89: icmp_seq=14 ttl=60 time=139 ms
+64 bytes from 172.16.11.34: icmp_seq=4 ttl=60 time=214 ms
+78 bytes from 172.16.0.89: icmp_seq=15 ttl=60 time=139 ms
+64 bytes from 172.16.11.34: icmp_seq=5 ttl=60 time=183 ms
+64 bytes from 172.16.11.34: icmp_seq=6 ttl=60 time=181 ms
+64 bytes from 172.16.11.34: icmp_seq=7 ttl=60 time=180 ms
+64 bytes from 172.16.11.34: icmp_seq=8 ttl=60 time=179 ms
+64 bytes from 172.16.11.34: icmp_seq=9 ttl=60 time=187 ms
+64 bytes from 172.16.11.34: icmp_seq=10 ttl=60 time=175 ms
+64 bytes from 172.16.11.34: icmp_seq=11 ttl=60 time=174 ms
+64 bytes from 172.16.11.34: icmp_seq=12 ttl=60 time=183 ms
+64 bytes from 172.16.11.34: icmp_seq=13 ttl=60 time=223 ms
+64 bytes from 172.16.11.34: icmp_seq=14 ttl=60 time=181 ms
+64 bytes from 172.16.11.34: icmp_seq=15 ttl=60 time=180 ms
+
+--- 172.16.11.34 ping statistics ---
+15 packets transmitted, 19 received, -26% packet loss, time 14015ms
+rtt min/avg/max/mdev = 138.678/181.624/223.131/26.863 ms
+`: "packetLoss: strconv.ParseUint: parsing \"-26\": invalid syntax",
+	}
 )
 
 func init() {
@@ -504,6 +531,18 @@ func TestFailed(t *testing.T) {
 		_, err := Parse(payload)
 		if err != expectedError {
 			t.Errorf("failed payload #%d: expected %v but got %v", i, expectedError, err)
+		}
+
+	}
+}
+
+func TestFailedByErrorString(t *testing.T) {
+	i := -1
+	for payload, expectedError := range failedPayloadsByErrorString {
+		i++
+		_, err := Parse(payload)
+		if err.Error() != expectedError {
+			t.Errorf("failed payload #%d: expected %v but got %v", i, expectedError, err.Error())
 		}
 
 	}
